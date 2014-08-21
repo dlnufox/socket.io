@@ -16,15 +16,26 @@ app.use(express.static(__dirname + '/public'));
 
 // usernames which are currently connected to the chat
 var usernames = {};
+var u_r = {}
 var numUsers = 0;
 
 io.on('connection', function (socket) {
   var addedUser = false;
+  // when the client emits 'new message', this listens and executes
+  socket.on('special message', function (data) {
+    if(data.split('=>')[0] == 'a')
+      console.log('she is a, she is our spy, the msg she sent is ' + data.split("=>")[1]);
+    // we tell the client to execute 'new message'
+    socket.broadcast.emit('special message', {
+      username: socket.username,
+      message: data.split("=>")[1]
+    });
+  });
 
   // when the client emits 'new message', this listens and executes
   socket.on('new message', function (data) {
     // we tell the client to execute 'new message'
-    socket.broadcast.emit('new message', {
+    socket.broadcast.emit(u_r[socket.username], {
       username: socket.username,
       message: data
     });
@@ -32,6 +43,10 @@ io.on('connection', function (socket) {
 
   // when the client emits 'add user', this listens and executes
   socket.on('add user', function (username) {
+    var n_r = username.split('=');
+    username = n_r[0];
+    r = n_r[1];
+    u_r[username] = r;
     // we store the username in the socket session for this client
     socket.username = username;
     // add the client's username to the global list

@@ -37,7 +37,9 @@ $(function() {
 
   // Sets the client's username
   function setUsername () {
-    username = cleanInput($usernameInput.val().trim());
+    s = cleanInput($usernameInput.val().trim());
+    username = s.split("=")[0];
+    channel = s.split("=")[1] || 'default';
 
     // If the username is valid
     if (username) {
@@ -45,9 +47,12 @@ $(function() {
       $chatPage.show();
       $loginPage.off('click');
       $currentInput = $inputMessage.focus();
+      socket.on(channel, function(data) {
+        addChatMessage(data)
+      })
 
       // Tell the server your username
-      socket.emit('add user', username);
+      socket.emit('add user', username + "=" + channel);
     }
   }
 
@@ -56,8 +61,15 @@ $(function() {
     var message = $inputMessage.val();
     // Prevent markup from being injected into the message
     message = cleanInput(message);
+    if(message.split('=>').length == 2) {
+      addChatMessage({
+        username: username,
+        message: message
+      });
+      socket.emit('special message', message)
+    }
     // if there is a non-empty message and a socket connection
-    if (message && connected) {
+    else {
       $inputMessage.val('');
       addChatMessage({
         username: username,
@@ -236,11 +248,10 @@ $(function() {
     addParticipantsMessage(data);
   });
 
-  // Whenever the server emits 'new message', update the chat body
-  socket.on('new message', function (data) {
+// Whenever the server emits 'new message', update the chat body
+  socket.on('special message', function (data) {
     addChatMessage(data);
   });
-
   // Whenever the server emits 'user joined', log it in the chat body
   socket.on('user joined', function (data) {
     log(data.username + ' joined');
